@@ -14,30 +14,55 @@ std::vector<line> lines;
 int c = 0;
 int x_def = -1;
 int y_def = -1;
+int algorithm = 1;
 
 
 void draw_line(int xi, int yi, int xf, int yf);
+void draw_line_midpoint(int xi, int yi, int xf, int yf);
 
 void my_draw_wake(){
-    draw_line(238, 291, 329, 404);
-    draw_line(329, 404, 403, 282);
-    draw_line(403, 282, 464, 386);
-    draw_line(464, 386, 540, 279);
-    draw_line(464, 386, 540, 279);
-    draw_line(598, 378, 658, 272);
-    draw_line(658, 272, 709, 379);
-    draw_line(630, 319, 684, 317);
-    draw_line(684, 317, 678, 317);
-    draw_line(774, 256, 774, 377);
-    draw_line(774, 377, 774, 320);
-    draw_line(774, 320, 835, 255);
-    draw_line(835, 255, 834, 257);
-    draw_line(773, 312, 831, 368);
-    draw_line(957, 249, 890, 250);
-    draw_line(890, 250, 890, 313);
-    draw_line(890, 313, 953, 310);
-    draw_line(890, 310, 892, 372);
-    draw_line(892, 372, 950, 372);
+    if(algorithm == 2){
+        draw_line(238, 291, 329, 404);
+        draw_line(329, 404, 403, 282);
+        draw_line(403, 282, 464, 386);
+        draw_line(464, 386, 540, 279);
+        draw_line(464, 386, 540, 279);
+        draw_line(598, 378, 658, 272);
+        draw_line(658, 272, 709, 379);
+        draw_line(630, 319, 684, 317);
+        draw_line(684, 317, 678, 317);
+        draw_line(774, 256, 774, 377);
+        draw_line(774, 377, 774, 320);
+        draw_line(774, 320, 835, 255);
+        draw_line(835, 255, 834, 257);
+        draw_line(773, 312, 831, 368);
+        draw_line(957, 249, 890, 250);
+        draw_line(890, 250, 890, 313);
+        draw_line(890, 313, 953, 310);
+        draw_line(890, 310, 892, 372);
+        draw_line(892, 372, 950, 372);
+    }
+    else if(algorithm == 1){
+        draw_line_midpoint(238, 291, 329, 404);
+        draw_line_midpoint(329, 404, 403, 282);
+        draw_line_midpoint(403, 282, 464, 386);
+        draw_line_midpoint(464, 386, 540, 279);
+        draw_line_midpoint(464, 386, 540, 279);
+        draw_line_midpoint(598, 378, 658, 272);
+        draw_line_midpoint(658, 272, 709, 379);
+        draw_line_midpoint(630, 319, 684, 317);
+        draw_line_midpoint(684, 317, 678, 317);
+        draw_line_midpoint(774, 256, 774, 377);
+        draw_line_midpoint(774, 377, 774, 320);
+        draw_line_midpoint(774, 320, 835, 255);
+        draw_line_midpoint(835, 255, 834, 257);
+        draw_line_midpoint(773, 312, 831, 368);
+        draw_line_midpoint(957, 249, 890, 250);
+        draw_line_midpoint(890, 250, 890, 313);
+        draw_line_midpoint(890, 313, 953, 310);
+        draw_line_midpoint(890, 310, 892, 372);
+        draw_line_midpoint(892, 372, 950, 372);
+    }
 }
 
 void draw_wake(){
@@ -77,12 +102,25 @@ void display(){
     glBegin(GL_POINTS);
     my_draw_wake();
     for (line l: lines) {
-        draw_line(l.xi, l.yi, l.xf, l.yf);
+        draw_line_midpoint(l.xi, l.yi, l.xf, l.yf);
     }
-    draw_line(temp_line.xi, temp_line.yi, temp_line.xf, temp_line.yf);
+    draw_line_midpoint(temp_line.xi, temp_line.yi, temp_line.xf, temp_line.yf);
     glEnd();
     glFlush();
 
+}
+
+void key(unsigned char key, int x, int y){
+    if(key == '1')
+        stipples = 1;
+    else if(key == '2')
+        stipples = 2;
+    else if(key == '3')
+        stipples = 3;
+    else if(key == 'm')
+        algorithm = 1;
+    else if(key == 'b')
+        algorithm = 2;
 }
 
 void mouse(int button, int state, int x, int y){
@@ -117,6 +155,76 @@ void move(int x, int y){
         temp_line.xf = x;
         temp_line.yf = y;
         glutPostRedisplay();
+    }
+}
+
+void draw_line_midpoint(int xi, int yi, int xf, int yf){ 
+    glColor3f(0,0,0);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    yi = height- yi;
+    yf = height - yf;
+    bool y_neg = false, x_neg = false;
+    int x = xi;
+    int y = yi;
+    int dx = abs(xf - xi);
+    int dy = abs(yf - yi);
+    int d = dy - dx/2;
+    glVertex2i(xi, height - yi);
+    if(dy == 0){
+    	if(xf > xi){
+            for(x = xi; x < xf; x++)
+                glVertex2i(x, height-y);	
+    	}
+    	else{
+            for(x = xf; x< xi; x++)
+                glVertex2i(x, height-y);
+
+    	}
+    	
+    }
+    if((float)dy/(float)dx < 1.0){
+        while(abs(x-xi) < abs(xf-xi)){
+            x++;
+            if(d < 0)
+                d+=dy;
+            else{
+                d+=(dy-dx);
+                y++;
+            }
+            //bottom half q1
+            if(yi < yf && xf > xi)
+                glVertex2i(x,height - y);
+            //top half q4
+            else if(yi > yf && xf > xi)
+                glVertex2i(x,height + y - 2 * yi);
+            //top half q3
+            else if(yi < yf && xf < xi)
+                glVertex2i(2*xi-x,height - y);
+            //bottom half q2
+            else if(yi > yf && xf < xi)
+                glVertex2i(2*xi-x,height + y - 2 * yi);
+        }
+    }
+    else{
+        while(abs(y-yi) < abs(yf-yi)){
+            y++;
+            if(d < 0)
+                d+=dx;
+            else{
+                d+=(dx-dy);
+                x++;
+            }
+            //same thing but change y instead of x
+            if(yi < yf && xf > xi)
+                glVertex2i(x,height - y);
+            else if(yi > yf && xf > xi)
+                glVertex2i(x,height +y-2*yi);
+            else if(yi < yf && xf < xi)
+                glVertex2i(2*xi-x,height - y);
+            else if(yi > yf && xf < xi)
+                glVertex2i(2*xi-x,height +y-2*yi);
+        }
+
     }
 }
 
@@ -197,6 +305,7 @@ int main(int argc, char *argv[]){
     glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode( GL_PROJECTION );
     glutMouseFunc(mouse);
+    glutKeyboardFunc(key);
     glutPassiveMotionFunc(move);
     glLoadIdentity();
     gluOrtho2D( 0.0, 2000.0, 2000.0,0.0 );
