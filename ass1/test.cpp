@@ -15,6 +15,8 @@ int c = 0;
 int x_def = -1;
 int y_def = -1;
 int algorithm = 1;
+int stipples = 0;
+bool clear = true;
 
 
 void draw_line(int xi, int yi, int xf, int yf);
@@ -66,7 +68,14 @@ void my_draw_wake(){
 }
 
 void draw_wake(){
+    //stipple stuff
+    glLineStipple(stipples, 0xAAAA);
+    glEnable(GL_LINE_STIPPLE);
+    if(stipples == 0)
+        glDisable(GL_LINE_STIPPLE);
+
     glBegin(GL_LINES);
+    glColor3f(1,1,1);
     glVertex2i(238+1000, 291); glVertex2i(329+1000, 404);
     glVertex2i(329+1000, 404); glVertex2i(403+1000, 282);
     glVertex2i(403+1000, 282); glVertex2i(464+1000, 386);
@@ -96,15 +105,41 @@ float myabs(float f){
 }
 
 void display(){
-    glClearColor(255.0f, 255.0f, 255.0f, 1.0f );
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    draw_wake();
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f );
+    if(clear)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //draw_wake();
     glBegin(GL_POINTS);
-    my_draw_wake();
+    //my_draw_wake();
+
+    //draw lines that have been saved and temp line
     for (line l: lines) {
-        draw_line_midpoint(l.xi, l.yi, l.xf, l.yf);
+        if(algorithm == 1)
+            draw_line_midpoint(l.xi, l.yi, l.xf, l.yf);
+        else if(algorithm == 2)
+            draw_line(l.xi, l.yi, l.xf, l.yf);
     }
-    draw_line_midpoint(temp_line.xi, temp_line.yi, temp_line.xf, temp_line.yf);
+    if(algorithm == 1)
+        draw_line_midpoint(temp_line.xi, temp_line.yi, temp_line.xf, temp_line.yf);
+    else if(algorithm == 2)
+        draw_line(temp_line.xi, temp_line.yi, temp_line.xf, temp_line.yf);
+    glEnd();
+
+    //mirror lines using opengl
+    glColor3f(1,1,1);
+    //stipple stuff
+    glLineStipple(stipples, 0xAAAA);
+    glEnable(GL_LINE_STIPPLE);
+    if(stipples == 0)
+        glDisable(GL_LINE_STIPPLE);
+
+    glBegin(GL_LINES);
+    for (line l: lines) {
+        glVertex2i(l.xi+1000, l.yi);
+        glVertex2i(l.xf+1000, l.yf);
+    }
+    glVertex2i(temp_line.xi+1000, temp_line.yi);
+    glVertex2i(temp_line.xf+1000, temp_line.yf);
     glEnd();
     glFlush();
 
@@ -112,18 +147,29 @@ void display(){
 
 void key(unsigned char key, int x, int y){
     if(key == '1')
-        stipples = 1;
-    else if(key == '2')
-        stipples = 2;
-    else if(key == '3')
         stipples = 3;
+    else if(key == '2')
+        stipples = 10;
+    else if(key == '3')
+        stipples = 15;
+    else if(key == '0')
+        stipples = 0;
     else if(key == 'm')
         algorithm = 1;
     else if(key == 'b')
         algorithm = 2;
+    else if(key == 'c'){
+        if(clear)
+            clear = false;
+        else
+            clear = true;
+    }
+    glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y){
+    if(x > 1000)
+        return;
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
         if(!c){
             c = 1;
@@ -159,7 +205,7 @@ void move(int x, int y){
 }
 
 void draw_line_midpoint(int xi, int yi, int xf, int yf){ 
-    glColor3f(0,0,0);
+    glColor3f(0,1,0);
     int height = glutGet(GLUT_WINDOW_HEIGHT);
     yi = height- yi;
     yf = height - yf;
@@ -170,18 +216,48 @@ void draw_line_midpoint(int xi, int yi, int xf, int yf){
     int dy = abs(yf - yi);
     int d = dy - dx/2;
     glVertex2i(xi, height - yi);
+    printf("newline\n");
+
+    //vertical and horizontal special case
     if(dy == 0){
     	if(xf > xi){
-            for(x = xi; x < xf; x++)
-                glVertex2i(x, height-y);	
-    	}
+            for(x = xi; x < xf; x++){
+                if(stipples == 0)
+                    glVertex2i(x, height-y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x, height-y);
+    	    }
+        }
     	else{
-            for(x = xf; x< xi; x++)
-                glVertex2i(x, height-y);
-
+            for(x = xf; x< xi; x++){
+                if(stipples == 0)
+                    glVertex2i(x, height-y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x, height-y);
+    	    }
     	}
-    	
     }
+    else if(dx == 0){
+        printf("HELLO\n");
+    	if(yf > yi){
+            for(y = yi; y < yf; y++){
+                if(stipples == 0)
+                    glVertex2i(x, height-y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x, height-y);	
+    	    }
+        }
+    	else{
+            for(y = yf; y< yi; y++){
+                if(stipples == 0)
+                    glVertex2i(x, height-y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x, height-y);
+    	    }
+    	}
+    }
+
+    //drawing lines with a slope below 1
     if((float)dy/(float)dx < 1.0){
         while(abs(x-xi) < abs(xf-xi)){
             x++;
@@ -192,19 +268,36 @@ void draw_line_midpoint(int xi, int yi, int xf, int yf){
                 y++;
             }
             //bottom half q1
-            if(yi < yf && xf > xi)
-                glVertex2i(x,height - y);
+            if(yi < yf && xf > xi){
+                if(stipples == 0)
+                    glVertex2i(x,height - y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x,height - y);
+            }
             //top half q4
-            else if(yi > yf && xf > xi)
-                glVertex2i(x,height + y - 2 * yi);
+            else if(yi > yf && xf > xi){
+                if(stipples == 0)
+                    glVertex2i(x,height + y - 2 * yi);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x,height + y - 2 * yi);
+            }
             //top half q3
-            else if(yi < yf && xf < xi)
-                glVertex2i(2*xi-x,height - y);
+            else if(yi < yf && xf < xi){
+                if(stipples == 0)
+                    glVertex2i(2*xi-x,height - y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(2*xi-x,height - y);
+            }
             //bottom half q2
-            else if(yi > yf && xf < xi)
-                glVertex2i(2*xi-x,height + y - 2 * yi);
+            else if(yi > yf && xf < xi){
+                if(stipples == 0)
+                    glVertex2i(2*xi-x,height + y - 2 * yi);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(2*xi-x,height + y - 2 * yi);
+            }
         }
     }
+    //lines with a slope above 1
     else{
         while(abs(y-yi) < abs(yf-yi)){
             y++;
@@ -215,21 +308,36 @@ void draw_line_midpoint(int xi, int yi, int xf, int yf){
                 x++;
             }
             //same thing but change y instead of x
-            if(yi < yf && xf > xi)
-                glVertex2i(x,height - y);
-            else if(yi > yf && xf > xi)
-                glVertex2i(x,height +y-2*yi);
-            else if(yi < yf && xf < xi)
-                glVertex2i(2*xi-x,height - y);
-            else if(yi > yf && xf < xi)
-                glVertex2i(2*xi-x,height +y-2*yi);
+            if(yi < yf && xf > xi){
+                if(stipples == 0)
+                    glVertex2i(x,height - y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x,height - y);
+            }
+            else if(yi > yf && xf > xi){
+                if(stipples == 0)
+                    glVertex2i(x,height + y - 2 * yi);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x,height + y - 2 * yi);
+            }
+            else if(yi < yf && xf < xi){
+                if(stipples == 0)
+                    glVertex2i(2*xi-x,height - y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(2*xi-x,height - y);
+            }
+            else if(yi > yf && xf < xi){
+                if(stipples == 0)
+                    glVertex2i(2*xi-x,height + y - 2 * yi);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(2*xi-x,height + y - 2 * yi);
+            }
         }
-
     }
 }
 
 void draw_line(int xi, int yi, int xf, int yf){
-    glColor3f(0,0,0);
+    glColor3f(1,0,0);
     float dx = xf - xi;
     float dy = yf - yi;
     bool derr_bad = false;
@@ -250,7 +358,10 @@ void draw_line(int xi, int yi, int xf, int yf){
     if(derr < 1.0 && !derr_bad){
         if(dx > 0){
             for(x = xi; x < xf; x++){
-                glVertex2i(x, y);
+                if(stipples == 0)
+                    glVertex2i(x, y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x, y);
                 err+=derr;
                 while(err >= 0.5){
                     y += dy/myabs(dy);
@@ -260,7 +371,10 @@ void draw_line(int xi, int yi, int xf, int yf){
         }
         else{
             for(x = xi; x > xf; x--){
-                glVertex2i(x, y);
+                if(stipples == 0)
+                    glVertex2i(x, y);
+                else if(x/stipples%3 == 0)
+                    glVertex2i(x, y);
                 err+=derr;
                 while(err >= 0.5){
                     y += dy/myabs(dy);
@@ -272,7 +386,10 @@ void draw_line(int xi, int yi, int xf, int yf){
     else{
         if(dy > 0){
             for(y = yi; y < yf; y++){
-                glVertex2i(x, y);
+                if(stipples == 0)
+                    glVertex2i(x, y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x, y);
                 err+=derr2;
                 while(err >= 0.5){
                     x += dx/myabs(dx);
@@ -282,7 +399,10 @@ void draw_line(int xi, int yi, int xf, int yf){
         }
         else{
             for(y = yi; y > yf; y--){
-                glVertex2i(x, y);
+                if(stipples == 0)
+                    glVertex2i(x, y);
+                else if(y/stipples%3 == 0)
+                    glVertex2i(x, y);
                 err+=derr2;
                 while(err >= 0.5){
                     x += dx/myabs(dx);
