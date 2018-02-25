@@ -1,0 +1,39 @@
+//printf("pixel pre read: %d, %d, %d\n", pixel[0], pixel[1], pixel[2]);
+//printf("pixel count %d, x: %d, y: %d\n", pixels.size(),x,y);
+//printf("pixel: %d, %d, %d\n", pixel[0], pixel[1], pixel[2]);
+//printf("original: %d, %d, %d\n", color[0], color[1], color[2]);
+
+void flood_fill(int x, int y, unsigned char* color, unsigned char* pixel){
+    glReadPixels(x,glutGet(GLUT_WINDOW_HEIGHT) - y,1,1,GL_RGB, GL_UNSIGNED_BYTE, pixel);
+
+    //check if current pixel is equal to the color we're replacing
+    if(color[0] == pixel[0] && color[1] == pixel[1]
+            && color[2] == pixel[2]){
+        glBegin(GL_POINTS);
+        glVertex2i(x,y);
+        glEnd();
+        glFlush();
+        pixels.push_back(std::make_pair(x, y));
+        flood_fill(x+1, y, color, pixel);
+        flood_fill(x-1, y, color, pixel);
+        flood_fill(x, y+1, color, pixel);
+        flood_fill(x, y-1, color, pixel);
+    }
+
+}
+
+//void read_pixel(int x, int y){
+    //y = glutGet( GLUT_WINDOW_HEIGHT  ) - y;
+    //unsigned char pixel[4];
+    //glReadPixels(x,y,1,1,GL_RGB, GL_UNSIGNED_BYTE, pixel);
+    //printf("pixel: %d, %d, %d\n", pixel[0], pixel[1], pixel[2]);
+//}
+
+
+glBegin(GL_LINES);
+glVertex2i(left.xi, left.yi); glVertex2i(left.xf, left.yf);
+glVertex2i(right.xi, right.yi); glVertex2i(right.xf, right.yf);
+glVertex2i(top.xi, top.yi); glVertex2i(top.xf, top.yf);
+glVertex2i(bottom.xi, bottom.yi); glVertex2i(bottom.xf, bottom.yf);
+glEnd();
+glFlush;
