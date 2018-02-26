@@ -264,8 +264,8 @@ void display(){
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //glLoadIdentity();
-    //glScalef(WIDTH, HEIGHT, 1);
+    glLoadIdentity();
+    gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
     //draw the viewport
     draw_viewport();
     //draw the window for clipping
@@ -274,7 +274,20 @@ void display(){
     draw_lines();
     //draw pixels for floodfill algorithm
     draw_pixels();
+
+
+    glTranslatef(vx1, vy1, 0);
+    glScalef((float)(vx2-vx1)/(float)(x2-xi), (float)(vy2-vy1)/(float)(y2-yi), 1.0);
+    glTranslatef(-xi, -yi, 0);
+    //glTranslatef(-(xi-vx1), -(yi-vy1), 0);
+    //draw lines that were saved
+    draw_lines();
+    //draw pixels for floodfill algorithm
+    draw_pixels();
+    
     glFlush();
+    glLoadIdentity();
+    gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
 }
 
 void menu(int value){
