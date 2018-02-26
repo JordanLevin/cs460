@@ -8,8 +8,14 @@
 #define WIDTH 1800
 #define HEIGHT 980
 
-using Point = std::pair<int, int>;
 //TODO maybe store individual polygons later
+struct point{
+    int x, y;
+    point(int xp, int yp){
+        x = xp;
+        y = yp;
+    }
+};
 struct line {
     int xi, yi;
     int xf, yf;
@@ -22,13 +28,15 @@ int x_def = -1;
 int y_def = -1;
 //values for saving and drawing lines
 line temp_line;
+//std::vector<line> lines;
 std::vector<line> lines;
 //pixels that floodfill filled
-std::vector<Point> pixels;
-
-//std::unordered_set<Point> filled;
+std::vector<point> pixels;
+//this is a hack for after the clipping
+std::vector<point> clipped;
 
 //variables for points of rectangle window
+std::vector<line> clip_window;
 int xi = 400, yi = 400;
 int x2 = 800, y2 = 800; 
 

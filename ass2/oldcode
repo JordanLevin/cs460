@@ -37,3 +37,24 @@ glVertex2i(top.xi, top.yi); glVertex2i(top.xf, top.yf);
 glVertex2i(bottom.xi, bottom.yi); glVertex2i(bottom.xf, bottom.yf);
 glEnd();
 glFlush;
+
+
+Point intersection(line l1, line l2){
+    int x1d = std::abs(l1.xf - l1.xi);
+    int y1d = std::abs(l1.yf - l1.yf);
+    int z1 = x1d*(l1.xi) + y1d*(l1.xf);
+
+    int x2d = std::abs(l2.xf - l2.xi);
+    int y2d = std::abs(l2.yf - l2.yf);
+    int z2 = x2d*(l2.xi) + y2d*(l2.xf);
+
+    int det = x1d*y2d - x2d*y1d;
+    if(det == 0){
+        return std::make_pair(0,0);
+    }
+    else{
+        int x = (y2d*z1 - y1d*z2)/det;
+        int y = (x1d*z2 - x2d*z1)/det;
+        return std::make_pair(x,y);
+    }
+}

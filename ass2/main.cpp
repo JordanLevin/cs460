@@ -6,100 +6,110 @@
 #include <cmath>
 #include "main.h"
 
-Point intersection(line l1, line l2){
-    int x1d = std::abs(l1.xf - l1.xi);
-    int y1d = std::abs(l1.yf - l1.yf);
-    int z1 = x1d*(l1.xi) + y1d*(l1.xf);
 
-    int x2d = std::abs(l2.xf - l2.xi);
-    int y2d = std::abs(l2.yf - l2.yf);
-    int z2 = x2d*(l2.xi) + y2d*(l2.xf);
-
-    int det = x1d*y2d - x2d*y1d;
-    if(det == 0){
-        return std::make_pair(0,0);
-    }
-    else{
-        int x = (y2d*z1 - y1d*z2)/det;
-        int y = (x1d*z2 - x2d*z1)/det;
-        return std::make_pair(x,y);
-    }
-}
-
-Point lineLineIntersection(Point A, Point B, Point C, Point D){
+point intersection(point A, point B, point C, point D){
     // Line AB represented as a1x + b1y = c1
-    double a1 = B.second - A.second;
-    double b1 = A.first - B.first;
-    double c1 = a1*(A.first) + b1*(A.second);
+    int a1 = B.y - A.y;
+    int b1 = A.x - B.x;
+    int c1 = a1*(A.x) + b1*(A.y);
  
     // Line CD represented as a2x + b2y = c2
-    double a2 = D.second - C.second;
-    double b2 = C.first - D.first;
-    double c2 = a2*(C.first)+ b2*(C.second);
+    int a2 = D.y - C.y;
+    int b2 = C.x - D.x;
+    int c2 = a2*(C.x)+ b2*(C.y);
  
-    double determinant = a1*b2 - a2*b1;
+    int det = a1*b2 - a2*b1;
  
-    if (determinant == 0)
-    {
-        // The lines are parallel. This is simplified
-        // by returning a pair of FLT_MAX
-        return std::make_pair(-1, -1);
+    if (det == 0){
+        return point(-1,-1);
     }
-    else
-    {
-        double x = (b2*c1 - b1*c2)/determinant;
-        double y = (a1*c2 - a2*c1)/determinant;
-        return std::make_pair((int)x, (int)y);
+    else{
+        double x = (b2*c1 - b1*c2)/det;
+        double y = (a1*c2 - a2*c1)/det;
+        return point((int)x, (int)y);
     }
 }
 
 void clip_polygon(){
-    line left, right, top, bottom;
-    left.xi = xi; left.yi = 0; left.xf = xi; left.yf = HEIGHT;
-    right.xi = x2; right.yi = 0; right.xf = x2; right.yf = HEIGHT;
-    top.xi = 0; top.yi = yi; top.xf = WIDTH; top.yf = yi;
-    bottom.xi = 0; bottom.yi = y2; bottom.xf = WIDTH; bottom.yf = y2;
     for(auto& l: lines){
-        Point p = lineLineIntersection(std::make_pair(l.xi, l.yi),
-                std::make_pair(l.xf, l.yf), std::make_pair(left.xi, left.yi),
-                std::make_pair(left.xf, left.yf));
+        for(auto side: clip_window){
+            point p = intersection(point(l.xi, l.yi), point(l.xf, l.yf), 
+                    point(side.xi, side.yi), point(side.xf, side.yf));
 
-        pixels.push_back(p);
-        printf("x: %d, y: %d\n", p.first, p.second);
-        //if(l.xi < xi){
-            //l.xi = xi;
+            //if the intersection isnt in the line segment ignore it.
+            //this chunk handles lines outside the clip area
+            if(p.x < std::min(l.xi, l.xf) || p.x > std::max(l.xi, l.xf)
+                    || p.y < std::min(l.yi,l.yf)||p.y>std::max(l.yi,l.yf)){
+                
+                clipped.push_back(point(p.x,p.y));
+                //line not in poly
+                if((l.xi < xi || l.xi > x2 || l.yi < yi || l.yi > y2)
+                   &&(l.xf < xi || l.xf > x2 || l.yf < yi || l.yf > y2)){
+                    l.xi = -1; l.yi = -1; l.xf = -1; l.yf = -1;
+                }
 
-        //}
-        //if(l.xf < xi){
-            //l.xf = xi;
+                
+                //if(l.xi < xi && l.xf < xi){
+                    //l.xi = xi; l.xf = xi;
+                //}
+                //if(l.xi > x2 && l.xf > x2){
+                    //l.xi = x2; l.xf = x2;
+                //}
+                //if(l.yi < x2 && l.yf < yi){
+                    //l.yi = yi; l.yf = yi;
+                //}
+                //if(l.yi > y2 && l.yf > y2){
+                    //l.yi = y2; l.yf = y2;
+                //}
+                continue;
+            }
 
-        //}
+            //section handles finding which point to move towards intersect;
+            //x point not in poly
+            if(l.xi < xi || l.xi > x2 || l.yi < yi || l.yi > y2){
+                l.xi = p.x;
+                l.yi = p.y;
+                clipped.push_back(point(l.xi,l.yi));
+                clipped.push_back(point(l.xf,l.yf));
+            }
+            //y point not in poly
+            else if(l.xf < xi || l.xf > x2 || l.yf < yi || l.yf > y2){
+                l.xf = p.x;
+                l.yf = p.y;
+                clipped.push_back(point(l.xi,l.yi));
+                clipped.push_back(point(l.xf,l.yf));
+            }
+            
+            //temp code to show intersects
+            //pixels.push_back(p);
+            //printf("x: %d, y: %d\n", p.x, p.y);
+        }
+
     }
-
 }
 
 
 void flood_fill(int x, int y, unsigned char* color, unsigned char* pixel){
-    std::queue<Point> flood;
-    flood.push(std::make_pair(x,y));
+    std::queue<point> flood;
+    flood.push(point(x,y));
     while(!flood.empty()){
         auto p = flood.front();
         flood.pop();
-        glReadPixels(p.first,glutGet(GLUT_WINDOW_HEIGHT) - p.second,
+        glReadPixels(p.x,glutGet(GLUT_WINDOW_HEIGHT) - p.y,
             1,1,GL_RGB, GL_UNSIGNED_BYTE, pixel);
 
         //check if current pixel is equal to the color we're replacing
         if(color[0] == pixel[0] && color[1] == pixel[1]
                 && color[2] == pixel[2]){
             glBegin(GL_POINTS);
-            glVertex2i(p.first,p.second);
+            glVertex2i(p.x,p.y);
             glEnd();
             glFlush();
-            pixels.push_back(std::make_pair(p.first, p.second));
-            flood.push(std::make_pair(p.first+1,p.second));
-            flood.push(std::make_pair(p.first-1,p.second));
-            flood.push(std::make_pair(p.first,p.second+1));
-            flood.push(std::make_pair(p.first,p.second-1));
+            pixels.push_back(point(p.x, p.y));
+            flood.push(point(p.x+1,p.y));
+            flood.push(point(p.x-1,p.y));
+            flood.push(point(p.x,p.y+1));
+            flood.push(point(p.x,p.y-1));
         }
     }
 
@@ -165,6 +175,19 @@ void move(int x, int y){
     }
 }
 
+//make a vector of the lines to clip polygon against
+void make_clip_lines(){
+    line left, right, top, bottom;
+    left.xi = xi; left.yi = 0; left.xf = xi; left.yf = HEIGHT;
+    right.xi = x2; right.yi = 0; right.xf = x2; right.yf = HEIGHT;
+    top.xi = 0; top.yi = yi; top.xf = WIDTH; top.yf = yi;
+    bottom.xi = 0; bottom.yi = y2; bottom.xf = WIDTH; bottom.yf = y2;
+    clip_window.push_back(left);
+    clip_window.push_back(right);
+    clip_window.push_back(top);
+    clip_window.push_back(bottom);
+}
+
 void draw_window(){
     glColor3f(1,1,1);
     glLineStipple(5, 0xAAAA);
@@ -178,12 +201,21 @@ void draw_window(){
     glDisable(GL_LINE_STIPPLE);
 }
 
+void draw_clipped(){
+    glColor3f(1,0,0);
+    glBegin(GL_LINES);
+    for(point p: clipped){
+        glVertex2i(p.x, p.y);
+    }
+    glEnd();
+}
+
 void draw_pixels(){
     glColor3f(1,0,0);
     glBegin(GL_LINES);
     for(auto p: pixels){
-        glVertex2i(p.first, p.second);
-        glVertex2i(p.first+10, p.second+10);
+        glVertex2i(p.x, p.y);
+        //glVertex2i(p.x+10, p.y+10);
     }
     glEnd();
 }
@@ -205,7 +237,10 @@ void display(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     //draw lines that were saved
-    draw_lines();
+    if(!clip)
+        draw_lines();
+    else
+        draw_clipped();
     //draw pixels for floodfill algorithm
     draw_pixels();
     //draw the window for clipping
@@ -260,6 +295,7 @@ int main(int argc, char *argv[]){
     gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
     glFlush();
 	make_menu();
+    make_clip_lines();
     glutDisplayFunc(display);
     glutMainLoop();
     
