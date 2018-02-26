@@ -37,12 +37,14 @@ std::vector<point> pixels;
 //variables for points of rectangle window
 std::vector<line> clip_window;
 line left, right, top, bot;
-int xi = 400, yi = 400;
-int x2 = 800, y2 = 800; 
+int xi = 1, yi = 1;
+int x2 = 400, y2 = 400; 
 
 //variables for viewport
-int vx1 = 100, vy1 = 100;
-int vx2 = 200, vy2 = 200;
+bool drag = false;
+bool moving = false;
+int vx1 = WIDTH-100, vy1 = HEIGHT-100;
+int vx2 = WIDTH, vy2 = HEIGHT;
 
 std::vector<point> clip_polygon();
 void key(unsigned char key, int x, int y);

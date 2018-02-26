@@ -141,14 +141,26 @@ void key(unsigned char key, int x, int y){
 }
 
 void mouse(int button, int state, int x, int y){
-    //printf("side: %d\n", line_points.size());
+    //click top right to scale the viewport
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && drag)
+        drag = false;
+    else if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN &&
+            std::abs(x-vx2) < 30 && std::abs(y-vy1) < 30)
+        drag = true;
+
+    //click top left to move viewport
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && moving)
+        moving = false;
+    else if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN &&
+            std::abs(x-vx1) < 30 && std::abs(y-vy1) < 30)
+        moving = true;
+
+    //handles line drawing
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && draw && cleared){
         if(line_points.size() > 0 && (abs(x-line_points[0].x)
                     < 30 && abs(y-line_points[0].y) < 30)){
             temp_line.xf = line_points[0].x;
             temp_line.yf = line_points[0].y;
-            //line_points.push_back(point(temp_line.xi, temp_line.yi));
-            //line_points.push_back(point(temp_line.xf, temp_line.yf));
             temp_line.xi = -1;
             temp_line.xf = -1;
             temp_line.yi = -1;
@@ -194,6 +206,20 @@ void move(int x, int y){
             temp_line.yf = line_points[0].y;
         }
 
+        glutPostRedisplay();
+    }
+    if(drag){
+        vx2 = x;
+        vy1 = y;
+        glutPostRedisplay();
+    }
+    else if(moving){
+        int xdiff = vx2 - vx1;
+        int ydiff = vy2 - vy1;
+        vx1 = x;
+        vy1 = y;
+        vx2 = vx1 + xdiff;
+        vy2 = vy1 + ydiff;
         glutPostRedisplay();
     }
 }
