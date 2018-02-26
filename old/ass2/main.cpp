@@ -7,11 +7,13 @@
 #include "main.h"
 
 
-point inter(point A, point B, point C, point D){
+point intersection(point A, point B, point C, point D){
+    // Line AB represented as a1x + b1y = c1
     int a1 = B.y - A.y;
     int b1 = A.x - B.x;
     int c1 = a1*(A.x) + b1*(A.y);
-    
+ 
+    // Line CD represented as a2x + b2y = c2
     int a2 = D.y - C.y;
     int b2 = C.x - D.x;
     int c2 = a2*(C.x)+ b2*(C.y);
@@ -22,86 +24,68 @@ point inter(point A, point B, point C, point D){
         return point(-1,-1);
     }
     else{
-        int x = (b2*c1 - b1*c2)/det;
-        int y = (a1*c2 - a2*c1)/det;
-        return point(x, y);
+        double x = (b2*c1 - b1*c2)/det;
+        double y = (a1*c2 - a2*c1)/det;
+        return point((int)x, (int)y);
     }
 }
 
-//point iter()
+void clip_polygon(){
+    for(auto& l: lines){
+        for(auto side: clip_window){
+            point p = intersection(point(l.xi, l.yi), point(l.xf, l.yf), 
+                    point(side.xi, side.yi), point(side.xf, side.yf));
 
-bool point_in_rect(point p){
-    if(p.x >= xi && p.x <= x2 && p.y >= yi && p.y <= y2)
-        return true;
-    return false;
-}
+            //if the intersection isnt in the line segment ignore it.
+            //this chunk handles lines outside the clip area
+            if(p.x < std::min(l.xi, l.xf) || p.x > std::max(l.xi, l.xf)
+                    || p.y < std::min(l.yi,l.yf)||p.y>std::max(l.yi,l.yf)){
+                
+                clipped.push_back(point(p.x,p.y));
+                //line not in poly
+                if((l.xi < xi || l.xi > x2 || l.yi < yi || l.yi > y2)
+                   &&(l.xf < xi || l.xf > x2 || l.yf < yi || l.yf > y2)){
+                    l.xi = -1; l.yi = -1; l.xf = -1; l.yf = -1;
+                }
 
-bool point_on_line(point p, point s, point e){
-    if(p.x <= std::min(s.x, e.x) || p.x >= std::max(s.x, e.x)
-            || p.y <= std::min(s.y, e.y) || p.y >= std::max(s.y, e.y))
-        return false;
-    return true;
-}
+                
+                //if(l.xi < xi && l.xf < xi){
+                    //l.xi = xi; l.xf = xi;
+                //}
+                //if(l.xi > x2 && l.xf > x2){
+                    //l.xi = x2; l.xf = x2;
+                //}
+                //if(l.yi < x2 && l.yf < yi){
+                    //l.yi = yi; l.yf = yi;
+                //}
+                //if(l.yi > y2 && l.yf > y2){
+                    //l.yi = y2; l.yf = y2;
+                //}
+                continue;
+            }
 
-std::vector<point> clip_polygon(){
-    std::vector<point> ret;
-    std::vector<point> ret1;
-    std::vector<point> ret2;
-    std::vector<point> ret3;
-    point s = line_points[line_points.size()-1];
-    //left
-    for(auto e: line_points){
-        if(e.x > xi){
-            if(s.x < xi){
-            ret.push_back(inter(s,e,point(left.xi,left.yi), point(left.xf, left.yf)));
+            //section handles finding which point to move towards intersect;
+            //x point not in poly
+            if(l.xi < xi || l.xi > x2 || l.yi < yi || l.yi > y2){
+                l.xi = p.x;
+                l.yi = p.y;
+                clipped.push_back(point(l.xi,l.yi));
+                clipped.push_back(point(l.xf,l.yf));
             }
-            ret.push_back(e);
-        }
-        else if(s.x > xi){
-            ret.push_back(inter(s,e,point(left.xi,left.yi), point(left.xf, left.yf)));
-        }
-        s = e;
-    }
-    //right
-    for(auto e: ret){
-        if(e.x < x2){
-            if(s.x > x2){
-            ret1.push_back(inter(s,e,point(right.xi,right.yi), point(right.xf, right.yf)));
+            //y point not in poly
+            else if(l.xf < xi || l.xf > x2 || l.yf < yi || l.yf > y2){
+                l.xf = p.x;
+                l.yf = p.y;
+                clipped.push_back(point(l.xi,l.yi));
+                clipped.push_back(point(l.xf,l.yf));
             }
-            ret1.push_back(e);
+            
+            //temp code to show intersects
+            //pixels.push_back(p);
+            //printf("x: %d, y: %d\n", p.x, p.y);
         }
-        else if(s.x < x2){
-            ret1.push_back(inter(s,e,point(right.xi,right.yi), point(right.xf, right.yf)));
-        }
-        s = e;
+
     }
-    //top
-    for(auto e: ret1){
-        if(e.y > yi){
-            if(s.y < yi){
-            ret2.push_back(inter(s,e,point(top.xi,top.yi), point(top.xf, top.yf)));
-            }
-            ret2.push_back(e);
-        }
-        else if(s.y > yi){
-            ret2.push_back(inter(s,e,point(top.xi,top.yi), point(top.xf, top.yf)));
-        }
-        s = e;
-    }
-    //bottom
-    for(auto e: ret2){
-        if(e.y < y2){
-            if(s.y > y2){
-            ret3.push_back(inter(s,e,point(bot.xi,bot.yi), point(bot.xf, bot.yf)));
-            }
-            ret3.push_back(e);
-        }
-        else if(s.y < y2){
-            ret3.push_back(inter(s,e,point(bot.xi,bot.yi), point(bot.xf, bot.yf)));
-        }
-        s = e;
-    }
-    return ret3;
 }
 
 
@@ -133,39 +117,33 @@ void flood_fill(int x, int y, unsigned char* color, unsigned char* pixel){
 
 void key(unsigned char key, int x, int y){
     if(key == 'c'){
-        line_points.clear();
+        lines.clear();
         pixels.clear();
-        cleared = true;
     }
     glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y){
-    //printf("side: %d\n", line_points.size());
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && draw && cleared){
-        if(line_points.size() > 0 && (abs(x-line_points[0].x)
-                    < 30 && abs(y-line_points[0].y) < 30)){
-            temp_line.xf = line_points[0].x;
-            temp_line.yf = line_points[0].y;
-            //line_points.push_back(point(temp_line.xi, temp_line.yi));
-            //line_points.push_back(point(temp_line.xf, temp_line.yf));
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && draw){
+        if(lines.size() > 0 && (abs(x-lines[0].xi) < 30 && abs(y-lines[0].yi) < 30)){
+            temp_line.xf = lines[0].xi;
+            temp_line.yf = lines[0].yi;
+            lines.push_back(temp_line);
             temp_line.xi = -1;
             temp_line.xf = -1;
             temp_line.yi = -1;
             temp_line.yf = -1;
+            c = false;
             x_def = -1;
             y_def = -1;
-            c = false;
-            cleared = false;
         }
         else if(!c){
             c = true;
             x_def = x;
             y_def = y;
-            line_points.push_back(point(x_def, y_def));
         }
         else{
-            line_points.push_back(point(x, y));
+            lines.push_back(temp_line);
             x_def = x;
             y_def = y;
         }
@@ -188,10 +166,9 @@ void move(int x, int y){
         temp_line.xf = x;
         temp_line.yf = y;
 
-        if(line_points.size() > 0 && (abs(x-line_points[0].x)
-                    < 30 && abs(y-line_points[0].y) < 30)){
-            temp_line.xf = line_points[0].x;
-            temp_line.yf = line_points[0].y;
+        if(lines.size() > 0 && (abs(x-lines[0].xi) < 10 && abs(y-lines[0].yi) < 10)){
+            temp_line.xf = lines[0].xi;
+            temp_line.yf = lines[0].yi;
         }
 
         glutPostRedisplay();
@@ -200,14 +177,15 @@ void move(int x, int y){
 
 //make a vector of the lines to clip polygon against
 void make_clip_lines(){
+    line left, right, top, bottom;
     left.xi = xi; left.yi = 0; left.xf = xi; left.yf = HEIGHT;
     right.xi = x2; right.yi = 0; right.xf = x2; right.yf = HEIGHT;
     top.xi = 0; top.yi = yi; top.xf = WIDTH; top.yf = yi;
-    bot.xi = 0; bot.yi = y2; bot.xf = WIDTH; bot.yf = y2;
+    bottom.xi = 0; bottom.yi = y2; bottom.xf = WIDTH; bottom.yf = y2;
     clip_window.push_back(left);
     clip_window.push_back(right);
     clip_window.push_back(top);
-    clip_window.push_back(bot);
+    clip_window.push_back(bottom);
 }
 
 void draw_window(){
@@ -223,37 +201,31 @@ void draw_window(){
     glDisable(GL_LINE_STIPPLE);
 }
 
-void draw_viewport(){
-    glColor3f(1,1,1);
-    glBegin(GL_LINES);
-    glVertex2i(vx1,vy1); glVertex2i(vx1,vy2);
-    glVertex2i(vx1,vy1); glVertex2i(vx2,vy1);
-    glVertex2i(vx2,vy1); glVertex2i(vx2,vy2);
-    glVertex2i(vx1,vy2); glVertex2i(vx2,vy2);
-    glEnd();
-}
-
-void draw_pixels(){
+void draw_clipped(){
     glColor3f(1,0,0);
-    glBegin(GL_POINTS);
-    for(auto p: pixels){
+    glBegin(GL_LINES);
+    for(point p: clipped){
         glVertex2i(p.x, p.y);
     }
     glEnd();
 }
 
-void draw_lines(){
+void draw_pixels(){
     glColor3f(1,0,0);
     glBegin(GL_LINES);
-    for(int i = 0; i < line_points.size(); i++){
-        if(i+1 < line_points.size()){
-            glVertex2i(line_points[i].x, line_points[i].y);
-            glVertex2i(line_points[i+1].x, line_points[i+1].y);
-        }
-        else if(!c){
-            glVertex2i(line_points[i].x, line_points[i].y);
-            glVertex2i(line_points[0].x, line_points[0].y);
-        }
+    for(auto p: pixels){
+        glVertex2i(p.x, p.y);
+        //glVertex2i(p.x+10, p.y+10);
+    }
+    glEnd();
+}
+
+void draw_lines(){
+    glColor3f(0,1,0);
+    glBegin(GL_LINES);
+    for (line l: lines) {
+        glVertex2i(l.xi, l.yi);
+        glVertex2i(l.xf, l.yf);
     }
     glVertex2i(temp_line.xi, temp_line.yi);
     glVertex2i(temp_line.xf, temp_line.yf);
@@ -264,24 +236,23 @@ void display(){
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //glLoadIdentity();
-    //glScalef(WIDTH, HEIGHT, 1);
-    //draw the viewport
-    draw_viewport();
-    //draw the window for clipping
-    draw_window();
     //draw lines that were saved
-    draw_lines();
+    if(!clip)
+        draw_lines();
+    else
+        draw_clipped();
     //draw pixels for floodfill algorithm
     draw_pixels();
+    //draw the window for clipping
+    draw_window();
     glFlush();
 }
 
 void menu(int value){
     switch(value) {
         case 1:
-            //clip = true; fill = false; view = false, draw = false;
-            line_points = clip_polygon();
+            clip = true; fill = false; view = false, draw = false;
+            clip_polygon();
             break;
         case 2:
             clip = false; fill = true; view = false, draw = false;
