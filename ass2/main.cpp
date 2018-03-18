@@ -5,42 +5,29 @@
 #include <queue>
 #include <cmath>
 #include "main.h"
+#include "draw.h"
+#include "input.h"
 
 
-point inter(point A, point B, point C, point D){
-    int a1 = B.y - A.y;
-    int b1 = A.x - B.x;
-    int c1 = a1*(A.x) + b1*(A.y);
+point inter(point p1, point p2, point p3, point p4){
+    int dy1 = p2.y - p1.y;
+    int dx1 = p1.x - p2.x;
+    int z1 = dy1*(p1.x) + dx1*(p1.y);
     
-    int a2 = D.y - C.y;
-    int b2 = C.x - D.x;
-    int c2 = a2*(C.x)+ b2*(C.y);
+    int dy2 = p4.y - p3.y;
+    int dx2 = p3.x - p4.x;
+    int z2 = dy2*(p3.x)+ dx2*(p3.y);
  
-    int det = a1*b2 - a2*b1;
+    int d = dy1*dx2 - dy2*dx1;
  
-    if (det == 0){
-        return point(-1,-1);
-    }
-    else{
-        int x = (b2*c1 - b1*c2)/det;
-        int y = (a1*c2 - a2*c1)/det;
+    if (d != 0){
+        int x = (dx2*z1 - dx1*z2)/d;
+        int y = (dy1*z2 - dy2*z1)/d;
         return point(x, y);
     }
-}
-
-//point iter()
-
-bool point_in_rect(point p){
-    if(p.x >= xi && p.x <= x2 && p.y >= yi && p.y <= y2)
-        return true;
-    return false;
-}
-
-bool point_on_line(point p, point s, point e){
-    if(p.x <= std::min(s.x, e.x) || p.x >= std::max(s.x, e.x)
-            || p.y <= std::min(s.y, e.y) || p.y >= std::max(s.y, e.y))
-        return false;
-    return true;
+    else{
+        return point(-1,-1);
+    }
 }
 
 std::vector<point> clip_polygon(){
@@ -105,9 +92,28 @@ std::vector<point> clip_polygon(){
 }
 
 
+// this function gives the maximum
+float maxi(float arr[],int n) {
+  float m = 0;
+  for (int i = 0; i < n; ++i)
+    if (m < arr[i])
+      m = arr[i];
+  return m;
+}
+
+// this function gives the minimum
+float mini(float arr[], int n) {
+  float m = 1;
+  for (int i = 0; i < n; ++i)
+    if (m > arr[i])
+      m = arr[i];
+  return m;
+}
+
 void flood_fill(int x, int y, unsigned char* color, unsigned char* pixel){
     std::queue<point> flood;
     flood.push(point(x,y));
+    //do a breadth first search
     while(!flood.empty()){
         auto p = flood.front();
         flood.pop();
@@ -129,161 +135,6 @@ void flood_fill(int x, int y, unsigned char* color, unsigned char* pixel){
         }
     }
 
-}
-
-void key(unsigned char key, int x, int y){
-    if(key == 'c'){
-        line_points.clear();
-        pixels.clear();
-        cleared = true;
-    }
-    glutPostRedisplay();
-}
-
-void mouse(int button, int state, int x, int y){
-    //click top right to scale the viewport
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && drag)
-        drag = false;
-    else if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN &&
-            std::abs(x-vx2) < 30 && std::abs(y-vy1) < 30)
-        drag = true;
-
-    //click top left to move viewport
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && moving)
-        moving = false;
-    else if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN &&
-            std::abs(x-vx1) < 30 && std::abs(y-vy1) < 30)
-        moving = true;
-
-    //handles line drawing
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && draw && cleared){
-        if(line_points.size() > 0 && (abs(x-line_points[0].x)
-                    < 30 && abs(y-line_points[0].y) < 30)){
-            temp_line.xf = line_points[0].x;
-            temp_line.yf = line_points[0].y;
-            temp_line.xi = -1;
-            temp_line.xf = -1;
-            temp_line.yi = -1;
-            temp_line.yf = -1;
-            x_def = -1;
-            y_def = -1;
-            c = false;
-            cleared = false;
-        }
-        else if(!c){
-            c = true;
-            x_def = x;
-            y_def = y;
-            line_points.push_back(point(x_def, y_def));
-        }
-        else{
-            line_points.push_back(point(x, y));
-            x_def = x;
-            y_def = y;
-        }
-    }
-    else if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && fill){
-        int y_temp = glutGet( GLUT_WINDOW_HEIGHT  ) - y;
-        unsigned char original[4];
-        unsigned char pixel[4];
-        glReadPixels(x,y_temp,1,1,GL_RGB, GL_UNSIGNED_BYTE, original);
-        glColor3f(0, 0, 1);
-        flood_fill(x, y, original, pixel);
-    }
-    glutPostRedisplay();
-}
-
-void move(int x, int y){
-    if(c){
-        temp_line.xi = x_def;
-        temp_line.yi = y_def;
-        temp_line.xf = x;
-        temp_line.yf = y;
-
-        if(line_points.size() > 0 && (abs(x-line_points[0].x)
-                    < 30 && abs(y-line_points[0].y) < 30)){
-            temp_line.xf = line_points[0].x;
-            temp_line.yf = line_points[0].y;
-        }
-
-        glutPostRedisplay();
-    }
-    if(drag){
-        vx2 = x;
-        vy1 = y;
-        glutPostRedisplay();
-    }
-    else if(moving){
-        int xdiff = vx2 - vx1;
-        int ydiff = vy2 - vy1;
-        vx1 = x;
-        vy1 = y;
-        vx2 = vx1 + xdiff;
-        vy2 = vy1 + ydiff;
-        glutPostRedisplay();
-    }
-}
-
-//make a vector of the lines to clip polygon against
-void make_clip_lines(){
-    left.xi = xi; left.yi = 0; left.xf = xi; left.yf = HEIGHT;
-    right.xi = x2; right.yi = 0; right.xf = x2; right.yf = HEIGHT;
-    top.xi = 0; top.yi = yi; top.xf = WIDTH; top.yf = yi;
-    bot.xi = 0; bot.yi = y2; bot.xf = WIDTH; bot.yf = y2;
-    clip_window.push_back(left);
-    clip_window.push_back(right);
-    clip_window.push_back(top);
-    clip_window.push_back(bot);
-}
-
-void draw_window(){
-    glColor3f(1,1,1);
-    glLineStipple(5, 0xAAAA);
-    glEnable(GL_LINE_STIPPLE);
-    glBegin(GL_LINES);
-    glVertex2i(xi,yi); glVertex2i(xi,y2);
-    glVertex2i(xi,yi); glVertex2i(x2,yi);
-    glVertex2i(x2,yi); glVertex2i(x2,y2);
-    glVertex2i(xi,y2); glVertex2i(x2,y2);
-    glEnd();
-    glDisable(GL_LINE_STIPPLE);
-}
-
-void draw_viewport(){
-    glColor3f(1,1,1);
-    glBegin(GL_LINES);
-    glVertex2i(vx1,vy1); glVertex2i(vx1,vy2);
-    glVertex2i(vx1,vy1); glVertex2i(vx2,vy1);
-    glVertex2i(vx2,vy1); glVertex2i(vx2,vy2);
-    glVertex2i(vx1,vy2); glVertex2i(vx2,vy2);
-    glEnd();
-}
-
-void draw_pixels(){
-    glColor3f(1,0,0);
-    glBegin(GL_POINTS);
-    for(auto p: pixels){
-        glVertex2i(p.x, p.y);
-    }
-    glEnd();
-}
-
-void draw_lines(){
-    glColor3f(1,0,0);
-    glBegin(GL_LINES);
-    for(int i = 0; i < line_points.size(); i++){
-        if(i+1 < line_points.size()){
-            glVertex2i(line_points[i].x, line_points[i].y);
-            glVertex2i(line_points[i+1].x, line_points[i+1].y);
-        }
-        else if(!c){
-            glVertex2i(line_points[i].x, line_points[i].y);
-            glVertex2i(line_points[0].x, line_points[0].y);
-        }
-    }
-    glVertex2i(temp_line.xi, temp_line.yi);
-    glVertex2i(temp_line.xf, temp_line.yf);
-    glEnd();
 }
 
 void display(){
@@ -316,33 +167,20 @@ void display(){
     gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
 }
 
-void menu(int value){
-    switch(value) {
-        case 1:
-            //clip = true; fill = false; view = false, draw = false;
-            line_points = clip_polygon();
-            break;
-        case 2:
-            clip = false; fill = true; view = false, draw = false;
-            break;
-        case 3:
-            clip = false; fill = false; view = true, draw = false;
-            break;
-        case 4:
-            clip = false; fill = false; view = false, draw = true;
-            break;
-    }
-    glutPostRedisplay();
+//make a vector of the lines to clip polygon against
+void make_clip_lines(){
+    left.xi = xi; left.yi = 0; left.xf = xi; left.yf = HEIGHT;
+    right.xi = x2; right.yi = 0; right.xf = x2; right.yf = HEIGHT;
+    top.xi = 0; top.yi = yi; top.xf = WIDTH; top.yf = yi;
+    bot.xi = 0; bot.yi = y2; bot.xf = WIDTH; bot.yf = y2;
 }
 
 void make_menu(void){ 
-   /*MainMenu*/
    glutCreateMenu(menu);
    glutAddMenuEntry("Clipping", 1);
    glutAddMenuEntry("Filling", 2);
-   glutAddMenuEntry("Viewport Mapping", 3);
-   glutAddMenuEntry("Draw", 4);
-   
+   glutAddMenuEntry("Draw", 3);
+   glutAddMenuEntry("Movement", 4);
    glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
