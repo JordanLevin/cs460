@@ -8,12 +8,15 @@
 #include <ctime>
 #include <iostream>
 
-float rot = 0;
+GLUquadricObj* quadric;
+int width, height;
 float ex = 0, ey = -40, ez = 0, cx = 0, cy = 0, cz = 0, ux = 0, uy = 0, uz = 1;
+//camera rotations
 float crotx = 0, croty = 0, crotz = 0;
+//lever rotations
+float rotlever = 0;
+
 bool keys[255];
-
-
 
 void key(unsigned char key, int x, int y){
     printf("ex: %f, ey: %f, ez: %f, cx: %f, cy: %f, cz: %f, ux: %f, uy: %f, uz: %f\n",
@@ -28,12 +31,11 @@ float center_dist(){
     return std::sqrt((cx-ex)*(cx-ex) + (cy-ey)*(cy-ey) + (cz-ez)*(cz-ez));
 }
 
-void physics(){
+void camera(){
     float cxr = cx-ex;
     float cyr = cy-ey;
     float czr = cz-ez;
     float cdist = center_dist();
-    printf("%f\n", cdist);
 
     if(keys['q']){
         croty += 0.01;
@@ -52,6 +54,9 @@ void physics(){
         float cyr_t = cyr;
         cyr = std::cos(-0.01)*cyr_t - std::sin(-0.01)*czr;
         czr = std::sin(-0.01)*cyr_t + std::cos(-0.01)*czr;
+        cxr = std::sin(croty);
+        printf("cyr: %f, czr: %f\n", cyr, czr);
+        //cxr = std::sqrt(std::abs(cdist*cdist - cyr*cyr - czr*czr));
     }
     if(keys['s']){
         crotx += 0.01;
@@ -76,77 +81,16 @@ void physics(){
         //ux = std::sin(0.01)*ux_t - std::cos(0.01)*uy;
         //uy = std::cos(0.01)*ux_t + std::sin(0.01)*uy;
     }
-    //temp
+    if(keys['l'])
+        rotlever += 1;
     //if(keys['i'])
         //slide_forward();
     //if(keys['k'])
         //slide_backward();
-    //if(keys['l'])
-        //strafe_right();
-    //if(keys['j'])
-        //strafe_left();
-
-    //rotate x
-    //cyr = cdist * std::sin(crotx);
-    //czr = cdist * std::cos(crotx);
-    //cyr = cdist*std::cos(crotx)*cyr - cdist*std::sin(crotx)*czr;
-    //czr = cdist*std::sin(crotx)*cyr - cdist*std::cos(crotx)*czr;
-    //uy = std::sin(crotx);
-    //uz = std::cos(crotx);
-
-    //rotate y
-    //cxr = cdist * std::sin(croty);
-    //czr = cdist * std::cos(croty);
-    //cyr = std::cos(crotx)*cyr - std::sin(crotx)*czr;
-    //czr = std::sin(crotx)*cyr - std::con(crotx)*czr;
-    //ux = std::sin(croty);
-    //uz = std::cos(croty);
-
-    //rotate z
-    //cyr = cdist * std::sin(crotz);
-    //cxr = cdist * std::cos(crotz);
-    //uy = std::sin(crotz);
-    //ux = std::cos(crotz);
-
     //translate the center back
     cx = cxr + ex;
     cy = cyr + ey;
     cz = czr + ez;
-
-    //float rotmatx[16] = {
-        //1, 0, 0, 0,
-        //0, std::cos(crotx), std::sin(crotx), 0,
-        //0, -std::sin(crotx),std::cos(crotx), 0,
-        //0, 0, 0, 1
-    //}:
-
-    //float rotmaty[16] = {
-        //std::cos(croty), 0, -std::sin(croty), 0,
-        //0, 1, 0, 0,
-        //std::sin(croty), 0, std::cos(croty), 0,
-        //0, 0, 0, 1
-    //};
-
-    //float rotmatz[16] = {
-        //std::cos(crotz), std::sin(crotz), 0, 0,
-        //-std::sin(crotz),std::cos(crotz), 0, 0
-        //0, 0, 1, 0,
-        //0, 0, 0, 1
-    //}:
-}
-
-void draw_axis(){
-    glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(-100,0,0);
-    glVertex3f(100,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,-100,0);
-    glVertex3f(0,100,0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,-100);
-    glVertex3f(0,0,100);
-    glEnd();
 }
 
 void draw_ground(){
@@ -169,30 +113,109 @@ void draw_ground(){
     glPopMatrix();
 }
 
+void viewport(int width, int height){
+  float ratio = (float)width/height;
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(60, ratio, 1, 256);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+void draw_lever(){
+    glColor3f(1, 0, 0);
+    glTranslatef(0, -5, 0);
+    
+    //main cylinder
+    glPushMatrix();
+    glRotatef(90,1,0,0);
+    gluCylinder(quadric, 1, 1, 10, 10, 10);
+    glPopMatrix();
+    
+    //center sphere
+    glRotatef(rotlever, 0, 1, 0);
+    glutSolidSphere(1, 10, 10);
+    glPushMatrix();
+    
+    //top center cylinder
+    glTranslatef(0, 0, -10);
+    gluCylinder(quadric, 1, 1, 20, 10, 10);
+
+    //right side sphere
+    glRotatef(rotlever, 0, 0, 1);
+    glutSolidSphere(1, 10, 10);
+
+    //rest of right side
+    glTranslatef(0, -5, 0);
+    glRotatef(-90, 1, 0, 0);
+    gluCylinder(quadric, 1, 0, 5, 10, 10);
+    glutSolidSphere(1.5, 10, 10);
+    glPopMatrix();
+
+    //left side sphere
+    glTranslatef(0, 0, 10);
+    glRotatef(-rotlever, 0, 0, 1);
+    glutSolidSphere(1, 10, 10);
+    
+    //the rest of left side
+    glTranslatef(0, -5, 0);
+    glRotatef(-90, 1, 0, 0);
+    gluCylinder(quadric, 1, 0, 5, 10, 10);
+    glutSolidSphere(1.5, 10, 10);
+
+
+    glColor3f(1, 1, 1);
+}
+
+void draw_viewports(){
+    //Viewport 1
+    glViewport(width/2.0, 0, width/2.0, height/2.0);
+    viewport(width/2.0, height/2.0);
+    glPushMatrix();
+    gluLookAt(ex, ey, ez, cx, cy, cz, ux, uy, uz);
+    draw_ground();
+    draw_lever();
+    glPopMatrix();
+    //Viewport top
+    glViewport(0, height/2.0, width/2.0, height/2.0);
+    viewport(width/2.0, height/2.0);
+    glPushMatrix();
+    gluLookAt(0, 40, 0, 0, 0, 0, 1, 0, 0);
+    draw_ground();
+    draw_lever();
+    glPopMatrix();
+    //Viewport side
+    glViewport(0, 0, width/2.0, height/2.0);
+    viewport(width/2.0, height/2.0);
+    glPushMatrix();
+    gluLookAt(40, 0, 0, 0, 0, 0, 0, 1, 0);
+    draw_ground();
+    draw_lever();
+    glPopMatrix();
+    //Viewport front
+    glViewport(width/2.0, height/2.0, width/2.0, height/2.0);
+    viewport(width/2.0, height/2.0);
+    glPushMatrix();
+    gluLookAt(0, 0, -40, 0, 0, 0, 0, 1, 0);
+    draw_ground();
+    draw_lever();
+    glPopMatrix();
+
+}
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
-    
-    physics();
 
-    gluLookAt(ex, ey, ez, cx, cy, cz, ux, uy, uz);
-    draw_ground();
-    
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glTranslatef(cx, cy, cz);
-    glutSolidCube(1);
-    glTranslatef(-cx, -cy, -cz);
-    glColor3f(1.0f, 1.0f, 1.0f);
-
-    glTranslatef(1,8,0);
-    glutWireCube(2);
-    glTranslatef(-2,1,1);
-    glutWireCube(1);
-    glTranslatef(-2,-3,-1);
-    glutWireCube(1);
+    //process camera controls
+    camera();
+    //draw all the viewports
+    draw_viewports();   
 }
 
 void reshape(int w, int h) {
+    width = w;
+    height = h;
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -218,6 +241,8 @@ int main(int argc, char** argv) {
     glutReshapeFunc(reshape);
     glutKeyboardFunc(key);
     glutKeyboardUpFunc(key_up);
+    quadric = gluNewQuadric();
+    gluQuadricDrawStyle(quadric, GLU_LINE);
     timer(0);
     glutMainLoop();
     return EXIT_SUCCESS;
