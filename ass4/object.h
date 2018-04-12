@@ -1,3 +1,6 @@
+#ifndef OBJECT_H
+#define OBJECT_H
+
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -26,8 +29,9 @@ struct Object {
                 in >> x;
                 in >> y;
                 in >> z;
-                in >> a;
-                v.x = x; v.y = y; v.z = z; v.a = a;
+                //in >> a;
+                v.x = x; v.y = y; v.z = z; 
+                //v.a = a;
                 vertices.push_back(v);
             }
             else if(id == "f"){
@@ -36,8 +40,9 @@ struct Object {
                 in >> a;
                 in >> b;
                 in >> c;
-                in >> d;
-                f.a = a; f.b = b; f.c = c; f.d = d;
+                //in >> d;
+                f.a = a; f.b = b; f.c = c; 
+                //f.d = d;
                 faces.push_back(f);
             }
         }
@@ -49,8 +54,10 @@ struct Object {
             glVertex3f(vertices[f.a-1].x, vertices[f.a-1].y, vertices[f.a-1].z);
             glVertex3f(vertices[f.b-1].x, vertices[f.b-1].y, vertices[f.b-1].z);
             glVertex3f(vertices[f.c-1].x, vertices[f.c-1].y, vertices[f.c-1].z);
-            glVertex3f(vertices[f.d-1].x, vertices[f.d-1].y, vertices[f.d-1].z);
+            //glVertex3f(vertices[f.d-1].x, vertices[f.d-1].y, vertices[f.d-1].z);
             glEnd();
         }
     }
 };
+
+#endif

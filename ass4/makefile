@@ -1,5 +1,5 @@
-main: main.cpp utils.cpp
-	g++ -std=c++14 -o main main.cpp utils.cpp -lglut -lGLU -lGL -lm -O3
+main: main.cpp flower.cpp flower.h object.h
+	g++ -std=c++14 -o main main.cpp flower.cpp -lglut -lGLU -lGL -lm -O3
 
 clean:
 	rm main
