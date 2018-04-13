@@ -103,12 +103,6 @@ void display() {
         gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
 
         flower.draw();
-        //if(keys['r']){
-            //flower.rot+=30;
-            //for(Triangle& t: flower.triangles){
-                //t.rot+=30;
-            //}
-        //}
         glColor3f(1,0,0);
     }
 }
