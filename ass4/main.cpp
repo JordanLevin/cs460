@@ -10,6 +10,7 @@
 #include <cmath>
 #include "flower.h"
 #include "object.h"
+#include "basics.h"
 
 #define TEAPOT 1
 #define FLOWER 2
@@ -28,8 +29,6 @@ int mode = 2;
 
 //FLOWER DATA
 Flower flower;
-int xi = 400, yi = 400;
-int xf = 800, yf = 800;
 
 bool keys[255];
 
@@ -100,16 +99,16 @@ void display() {
         glLoadIdentity();
         gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
 
-        flower.draw(xi, yi, xf, yf);
+        //flower.draw(xi, yi, xf, yf);
         if(keys['r'])
             flower.rot++;
         glColor3f(1,0,0);
-        glBegin(GL_LINE_LOOP);
-        glVertex2i(xi, yi);
-        glVertex2i(xf, yi);
-        glVertex2i(xf, yf);
-        glVertex2i(xi, yf);
-        glEnd();
+        //glBegin(GL_LINE_LOOP);
+        //glVertex2i(xi, yi);
+        //glVertex2i(xf, yi);
+        //glVertex2i(xf, yf);
+        //glVertex2i(xi, yf);
+        //glEnd();
     }
 }
 
@@ -142,8 +141,8 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutPassiveMotionFunc(move);
     glutKeyboardUpFunc(key_up);
-    flower.read("./files/flower.bmp");
     teapot.read("./files/teapot.obj");
+    flower.init();
     timer(0);
     glutMainLoop();
     return EXIT_SUCCESS;

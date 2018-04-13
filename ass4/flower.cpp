@@ -6,13 +6,20 @@
 #include <vector>
 #include <cmath>
 #include "flower.h"
+#include "basics.h"
 
-int HEADER_SIZE = 54;
-int WIDTH_LOCATION = 18;
-int HEIGHT_LOCATION = 22;
 
+
+Flower::Flower(){
+    read("./files/flower.bmp");
+    make_texture();
+}
 
 void Flower::read(char * filename){
+    int HEADER_SIZE = 54;
+    int WIDTH_LOCATION = 18;
+    int HEIGHT_LOCATION = 22;
+
     FILE * fd=fopen(filename,"rb");
     unsigned char info[HEADER_SIZE];
     fread(info,sizeof(unsigned char), HEADER_SIZE, fd); //read the header-byte header
@@ -50,13 +57,6 @@ void Flower::read(char * filename){
     this->pixels = pixels;
 }
 
-void Flower::clicked(Point p){
-    click = p;
-
-    top = Triangle(Point(xi, yi), )
-
-}
-
 Point Flower::rotate(Point origin, Point p, float angle){
     float s = std::sin(angle * M_PI/180);
     float c = std::cos(angle * M_PI/180);
@@ -88,11 +88,46 @@ Pixel Flower::get_pixel(int x, int y, int x_start, int y_start, int x_end, int y
     return pixels[y][x];
 }
 
+void Flower::clicked(Point p){
+    click = p;
+    top.p3 = p;
+    right.p3 = p;
+    bottom.p3 = p;
+    left.p3 = p;
+}
+
+void Flower::make_texture(){
+    //center point
+    Point p((xi + xf)/2, (yi + yf)/2);
+    //generate 4 triangles
+    Triangle top =   Triangle(Point(xi, yi), Point(xf, yi), p);
+    Triangle right = Triangle(Point(xf, yi), Point(xf, yf), p);
+    Triangle bottom= Triangle(Point(xf, yf), Point(xi, yf), p);
+    Triangle left =  Triangle(Point(xi, yi), Point(xi, yf), p);
+
+    //generate texture for each triangle
+    for(int row = 0; row < pixels.size(); row++){
+        for(int col = 0; col < pixels[0].size(); col++){
+            Point curr = convert_cart(Point(row, col));
+            if(top.point_in_tri(curr))
+                top.texture.push_back(std::make_pair(curr, pixels[row][col]));
+            else if(right.point_in_tri(curr))
+                right.texture.push_back(std::make_pair(curr, pixels[row][col]));
+            else if(bottom.point_in_tri(curr))
+                bottom.texture.push_back(std::make_pair(curr, pixels[row][col]));
+            else if(left.point_in_tri(curr))
+                left.texture.push_back(std::make_pair(curr, pixels[row][col]));
+        }
+    }
+
+}
+
 void Flower::draw(int x_start, int y_start, int x_end, int y_end){
     top.draw();
     right.draw();
     bottom.draw();
     left.draw();
+
     //rotate picture
     //int xcenter = (x_start + x_end)/2;
     //int ycenter = (y_start + y_end)/2;
@@ -110,3 +145,4 @@ void Flower::draw(int x_start, int y_start, int x_end, int y_end){
     //}
     //glEnd();
 }
+
