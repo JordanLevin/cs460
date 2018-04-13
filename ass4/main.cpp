@@ -52,10 +52,7 @@ void move(int x, int y){
         rotatey = (y - y_0);
     }
     else if(clicked && mode == FLOWER){
-        flower.curr.x = x;
-        flower.curr.y = y;
-        mx = x;
-        my = y;
+        flower.clicked(Point(x, y));
     }
 }
 
@@ -64,6 +61,12 @@ void key(unsigned char key, int x, int y){
         mode = FLOWER;
     if(key == 't')
         mode = TEAPOT;
+    if(key == 'r' && mode == FLOWER){
+        flower.rot+=30;
+        for(Triangle& t: flower.triangles){
+            t.rot+=30;
+        }
+    }
     keys[key] = true;
 }
 void key_up(unsigned char key, int x, int y){
@@ -99,16 +102,14 @@ void display() {
         glLoadIdentity();
         gluOrtho2D( 0.0, WIDTH, HEIGHT,0.0 );
 
-        //flower.draw(xi, yi, xf, yf);
-        if(keys['r'])
-            flower.rot++;
+        flower.draw();
+        //if(keys['r']){
+            //flower.rot+=30;
+            //for(Triangle& t: flower.triangles){
+                //t.rot+=30;
+            //}
+        //}
         glColor3f(1,0,0);
-        //glBegin(GL_LINE_LOOP);
-        //glVertex2i(xi, yi);
-        //glVertex2i(xf, yi);
-        //glVertex2i(xf, yf);
-        //glVertex2i(xi, yf);
-        //glEnd();
     }
 }
 
@@ -142,7 +143,6 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(move);
     glutKeyboardUpFunc(key_up);
     teapot.read("./files/teapot.obj");
-    flower.init();
     timer(0);
     glutMainLoop();
     return EXIT_SUCCESS;

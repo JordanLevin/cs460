@@ -5,6 +5,7 @@ struct Point{
     int x, y;
     Point() = default;
     Point(int xi, int yi);
+    void rotate(Point origin, float angle);
 };
 
 struct BaryCentric{

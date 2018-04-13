@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <vector>
 #include <cmath>
+#include <iostream>
 #include "basics.h"
 #include "triangle.h"
 
@@ -46,13 +47,19 @@ BaryCentric Triangle::convert_cart(Point p){
     return BaryCentric(lam1, lam2, lam3);
 }
 
-void Triangle::draw(){
+void Triangle::draw(int x_start, int y_start){
+    //printf("draw tri\n");
+    //printf("size%d\n", texture.size());
+    //printf("%d, %d\n", x_start, y_start);
     glBegin(GL_POINTS);
     for(auto texel: texture){
         Point p = convert_bary(texel.first);
+        p.rotate(p3, rot);
         Pixel color = texel.second;
         glColor3ub(color.r, color.g, color.b);
-        glVertex2i(p.x, p.y);
+        //printf("x: %d, y: %d\n", p.x, p.y);
+        glVertex2i(p.x + x_start, p.y + y_start);
+        glVertex2i(p.x+1 + x_start, p.y+1 + y_start);
     }
     glEnd();
 }

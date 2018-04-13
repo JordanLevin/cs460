@@ -5,6 +5,7 @@
 
 struct Triangle{
     Point p1, p2, p3;
+    float rot = 0;
     std::vector<std::pair<BaryCentric, Pixel>> texture;
 
     Triangle() = default;
@@ -12,7 +13,7 @@ struct Triangle{
     bool point_in_tri(Point p);
     Point convert_bary(BaryCentric b);
     BaryCentric convert_cart(Point p);
-    void draw();
+    void draw(int x_start, int y_start);
 };
 
 #endif /* ifndef TRIANGLE_H */

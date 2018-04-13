@@ -18,6 +18,20 @@ Point::Point(int xi, int yi){
     y = yi;
 }
 
+void Point::rotate(Point origin, float angle){
+    float s = std::sin(angle * M_PI/180);
+    float c = std::cos(angle * M_PI/180);
+
+    x -= origin.x;
+    y -= origin.y;
+
+    float xnew = x*c - y*s;
+    float ynew = x*s + y*c;
+
+    x = xnew + origin.x;
+    y = ynew + origin.y;
+}
+
 Pixel::Pixel(unsigned char red, unsigned char green, unsigned char blue){
     r = red;
     g = green;

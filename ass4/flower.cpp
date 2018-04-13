@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <vector>
 #include <cmath>
+#include <iostream>
 #include "flower.h"
 #include "basics.h"
 
@@ -12,7 +13,27 @@
 
 Flower::Flower(){
     read("./files/flower.bmp");
+    int xf = height;
+    int yf = width;
+    int xi = 0;
+    int yi = 0;
+    //center point
+    Point p((xi + xf)/2, (yi + yf)/2);
+    //generate 4 triangles
+    Point tl = Point(xi, yi);
+    Point tr = Point(xf, yi);
+    Point bl = Point(xi, yf);
+    Point br = Point(xf, yf);
+    Triangle top =   Triangle(tl, tr, p);
+    Triangle right = Triangle(tr, br, p);
+    Triangle bottom= Triangle(bl, br, p);
+    Triangle left =  Triangle(bl, tl, p);
+
+    //fill list of triangles
+    triangles = {top, right, bottom, left};
+
     make_texture();
+    printf("texture done\n");
 }
 
 void Flower::read(char * filename){
@@ -22,13 +43,10 @@ void Flower::read(char * filename){
 
     FILE * fd=fopen(filename,"rb");
     unsigned char info[HEADER_SIZE];
-    fread(info,sizeof(unsigned char), HEADER_SIZE, fd); //read the header-byte header
-    //extract the  heght and width of the image from the header info.
-    int width  = *(int *)&info[WIDTH_LOCATION];
-    int height = *(int *)&info[HEIGHT_LOCATION];
-    this->width = width;
-    this->height = height;
-    int size=3 * width * height;  // three channels (RGB)
+    fread(info,sizeof(unsigned char), HEADER_SIZE, fd);
+    this->width  = *(int *)&info[WIDTH_LOCATION];
+    this->height = *(int *)&info[HEIGHT_LOCATION];
+    int size=3 * width * height;
 
     unsigned char * data = (unsigned char *)malloc(sizeof(unsigned char)*size);
     fread(data, sizeof(unsigned char), size, fd);// read the data
@@ -57,76 +75,36 @@ void Flower::read(char * filename){
     this->pixels = pixels;
 }
 
-Point Flower::rotate(Point origin, Point p, float angle){
-    float s = std::sin(angle * M_PI/180);
-    float c = std::cos(angle * M_PI/180);
-
-    p.x -= origin.x;
-    p.y -= origin.y;
-
-    float xnew = p.x*c - p.y*s;
-    float ynew = p.x*s + p.y*c;
-
-    p.x = xnew + origin.x;
-    p.y = ynew + origin.y;
-    return p;
-}
-
-Pixel Flower::get_pixel(int x, int y, int x_start, int y_start, int x_end, int y_end){
-    float xdiff = std::abs(x_end - x_start);
-    float ydiff = std::abs(y_end - y_start);
-
-    float xsize = xdiff/(float)pixels[0].size();
-    float ysize = ydiff/(float)pixels.size();
-    
-    x -= x_start;
-    y -= y_start;
-
-    x = x/xsize;
-    y = y/ysize;
-
-    return pixels[y][x];
-}
 
 void Flower::clicked(Point p){
-    click = p;
-    top.p3 = p;
-    right.p3 = p;
-    bottom.p3 = p;
-    left.p3 = p;
+    click = Point(p.x-offsetx, p.y-offsety);
+    //update the 4 triangles
+    for(auto& t: triangles){
+        t.p3 = click;
+    }
 }
 
 void Flower::make_texture(){
-    //center point
-    Point p((xi + xf)/2, (yi + yf)/2);
-    //generate 4 triangles
-    Triangle top =   Triangle(Point(xi, yi), Point(xf, yi), p);
-    Triangle right = Triangle(Point(xf, yi), Point(xf, yf), p);
-    Triangle bottom= Triangle(Point(xf, yf), Point(xi, yf), p);
-    Triangle left =  Triangle(Point(xi, yi), Point(xi, yf), p);
-
     //generate texture for each triangle
     for(int row = 0; row < pixels.size(); row++){
         for(int col = 0; col < pixels[0].size(); col++){
-            Point curr = convert_cart(Point(row, col));
-            if(top.point_in_tri(curr))
-                top.texture.push_back(std::make_pair(curr, pixels[row][col]));
-            else if(right.point_in_tri(curr))
-                right.texture.push_back(std::make_pair(curr, pixels[row][col]));
-            else if(bottom.point_in_tri(curr))
-                bottom.texture.push_back(std::make_pair(curr, pixels[row][col]));
-            else if(left.point_in_tri(curr))
-                left.texture.push_back(std::make_pair(curr, pixels[row][col]));
+            for(Triangle& t: triangles){
+                Point curr = Point(row, col);
+                if(t.point_in_tri(curr)){
+                    //std::cout << "TEST\n";
+                    t.texture.push_back(std::make_pair(t.convert_cart(curr), pixels[row][col]));
+                    break;
+                }
+            }
         }
     }
-
 }
 
-void Flower::draw(int x_start, int y_start, int x_end, int y_end){
-    top.draw();
-    right.draw();
-    bottom.draw();
-    left.draw();
+void Flower::draw(){
+    //printf("draw flower\n");
+    for(auto t: triangles){
+        t.draw(offsetx, offsety);
+    }
 
     //rotate picture
     //int xcenter = (x_start + x_end)/2;
