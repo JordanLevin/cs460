@@ -9,25 +9,11 @@
 #include <vector>
 #include "utils.h"
 
-void mouse(int button, int state, int x, int y){
-    unsigned char pixel[3];
-    glReadPixels(x,glutGet(GLUT_WINDOW_HEIGHT) - y,
-        1,1,GL_RGB, GL_UNSIGNED_BYTE, &pixel);
-    curr = &(controls[pixel[0]/85][pixel[2]/85]);
-}
-
-void key(unsigned char key, int x, int y){
-    keys[key] = true;
-}
-void key_up(unsigned char key, int x, int y){
-    keys[key] = false;
-}
-
 void lighting(){
     glClearColor (0.0, 0.0, 0.0, 0.0);
-    if(render_type == 1)
+    if(render_type == 0)
         glShadeModel (GL_FLAT);
-    else if(render_type == 2)
+    else if(render_type == 1)
         glShadeModel (GL_SMOOTH);
     //else if(mode == 2){
         //ray_trace();
@@ -39,9 +25,25 @@ void lighting(){
     glLightfv(GL_LIGHT0, GL_POSITION, LightSpecular);
     glLightfv(GL_LIGHT0, GL_POSITION, pos);
 
+    //glColorMaterial(GL_FRONT, GL_DIFFUSE);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
+}
+
+void mouse(int button, int state, int x, int y){
+    unsigned char pixel[3];
+    glReadPixels(x,glutGet(GLUT_WINDOW_HEIGHT) - y,
+        1,1,GL_RGB, GL_UNSIGNED_BYTE, &pixel);
+    curr = &(controls[pixel[0]/85][pixel[2]/85]);
+}
+
+void key(unsigned char key, int x, int y){
+    //printf("%f, %f, %f\n", lightx, lighty, lightz);
+    keys[key] = true;
+}
+void key_up(unsigned char key, int x, int y){
+    keys[key] = false;
 }
 
 Point normal_avg(Point p){
@@ -135,6 +137,9 @@ void draw_triangles(){
         Point n = normal(t);
         if(dot(v, n) > 0)
             continue;
+        //Point p1 = n;
+        //Point p2 = n;
+        //Point p3 = n;
         Point p1 = normal_avg(t.a);
         Point p2 = normal_avg(t.b);
         Point p3 = normal_avg(t.c);
@@ -145,6 +150,7 @@ void draw_triangles(){
         glVertex3f(t.b.x, t.b.y, t.b.z);
 
         glNormal3f(p3.x, p3.y, p3.z);
+        printf("%f, %f, %f\n", p1.x, p1.y, p1.z);
         glVertex3f(t.c.x, t.c.y, t.c.z);
         glEnd();
     }
@@ -221,12 +227,10 @@ void display(){
     glMaterialfv(GL_FRONT, GL_SPECULAR, ColorWhite);
     glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
 
-    if(render_type != 0){
-        glPushMatrix();
-        glTranslatef(lightx, lighty+1, lightz);
-        glutSolidSphere(1,16,16);
-        glPopMatrix();
-    }
+    glPushMatrix();
+    glTranslatef(lightx, lighty+1, lightz);
+    glutSolidSphere(1,16,16);
+    glPopMatrix();
 
     if(changed){
         calculate_bezier();

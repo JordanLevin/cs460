@@ -9,6 +9,8 @@
 #include <array>
 #include <vector>
 
+#define SCALE 1
+
 struct Point{
     float x=0, y=0, z=0;
     float r=0, g=0, b=0;
@@ -18,12 +20,16 @@ struct Point{
         this->y = y;
         this->z = z;
     }
-    Point operator-(Point other){
+    Point operator-(const Point& other) const{
         return Point(x-other.x, y-other.y, z-other.z);
+    }
+    bool operator==(const Point& other) const{
+        return std::abs(x-other.x) < .01 && std::abs(y-other.y) < .01 && std::abs(z-other.z) < .01;
     }
 };
 
 struct Triangle{
+    Point normal;
     Point a, b, c;
     Triangle() = default;
     Triangle(Point p1, Point p2, Point p3){
@@ -31,7 +37,14 @@ struct Triangle{
         b = p2;
         c = p3;
     }
+    bool contains(const Point& p) const{
+        return p == a || p == b || p == c;
+    }
 };
+
+//struct Sphere{
+    
+//};
 
 std::array<std::array<Point, 4>, 4> controls;
 std::array<std::array<Point, 20>, 20> points;
@@ -39,8 +52,9 @@ std::vector<Triangle> triangles;
 int WIDTH;
 int HEIGHT;
 bool clicked = false;
-bool ambient = false, diffuse = false, specular = false;
 Point* curr;
+int render_type = 0;
+float lightx = 0, lighty = 15, lightz = 0;
 
 bool keys[255];
 
@@ -49,6 +63,9 @@ bool keys[255];
 float LightAmbient[] = {0.1,0.1,0.1,1.0};
 float LightDiffuse[] = {0.7, 0.7, 0.7, 1.0};
 float LightSpecular[]= {0.4, 0.4, 0.4, 1.0};
+float ColorGreen[]= {0.0, 1.0, 0.0, 1.0};
+float ColorWhite[]= {1.0, 1.0, 1.0, 1.0};
+GLfloat shininess[] = {50.0};
 
 Point normal(Triangle t){
     Point ret;
@@ -70,8 +87,8 @@ void init_control_points(){
         for (int j = 0; j < 5; ++j) {
             controls[i][j].r = i*85;
             controls[i][j].b = j*85;
-            controls[i][j].x = i*4+i;
-            controls[i][j].z = j*4+j;
+            controls[i][j].x = (i*4+i)*SCALE;
+            controls[i][j].z = (j*4+j)*SCALE;
         }
     }
 }
