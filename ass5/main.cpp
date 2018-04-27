@@ -10,13 +10,27 @@
 #include "utils.h"
 
 void mouse(int button, int state, int x, int y){
+    bpoint = false;
     unsigned char pixel[3];
     glReadPixels(x,glutGet(GLUT_WINDOW_HEIGHT) - y,
         1,1,GL_RGB, GL_UNSIGNED_BYTE, &pixel);
-    curr = &(controls[pixel[0]/85][pixel[2]/85]);
+    for(auto& bcontrol: bcontrols){
+        if(bcontrol.g == pixel[1] && bcontrol.b == pixel[2]){
+            curr = &bcontrol;
+            bpoint = true;
+        }
+    }
+    if(!bpoint){
+        bpoint = false;
+        curr = &(controls[pixel[0]/85][pixel[2]/85]);
+    }
 }
 
 void key(unsigned char key, int x, int y){
+    if(key == 'z'){camx-=5;}
+    if(key == 'x'){camx+=5;}
+    if(key == 'g'){camy-=5;}
+    if(key == 't'){camy+=5;}
     keys[key] = true;
 }
 void key_up(unsigned char key, int x, int y){
@@ -25,13 +39,10 @@ void key_up(unsigned char key, int x, int y){
 
 void lighting(){
     glClearColor (0.0, 0.0, 0.0, 0.0);
-    if(render_type == 1)
+    if(render_type == 1 || render_type == 3)
         glShadeModel (GL_FLAT);
     else if(render_type == 2)
         glShadeModel (GL_SMOOTH);
-    //else if(mode == 2){
-        //ray_trace();
-    //}
 
     float pos[] = {-lightx, -lighty, -lightz, 0.0};
     glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient);
@@ -44,7 +55,7 @@ void lighting(){
     glEnable(GL_DEPTH_TEST);
 }
 
-Point normal_avg(Point p){
+Vec3f normal_avg(Vec3f p){
     float count = 0;
     float x = 0, y = 0, z = 0;
     for(const auto& t: triangles){
@@ -55,8 +66,7 @@ Point normal_avg(Point p){
             count++;
         }
     }
-    //std::cout << count << '\n';
-    return Point(x/count, y/count, z/count);
+    return Vec3f(x/count, y/count, z/count);
 }
 
 void calculate_normals(){
@@ -65,8 +75,20 @@ void calculate_normals(){
     }
 }
 
-Point bezier_curve(std::array<Point, 4> p, float u){
-    Point ret;
+Vec3f bspline_curve(std::vector<Vec3f> p, float u){
+    Vec3f ret;
+    float b1 = (float)std::pow(1-u, 3)/6.0;
+    float b2 = (3.0*u*u*u - 6.0*u*u+4.0)/6.0;
+    float b3 = (-3.0*u*u*u + 3.0*u*u+3.0*u +1)/6.0;
+    float b4 = u*u*u/6.0;
+    ret.x += b1*p[0].x + b2*p[1].x + b3*p[2].x + b4*p[3].x;
+    ret.y += b1*p[0].y + b2*p[1].y + b3*p[2].y + b4*p[3].y;
+    ret.z += b1*p[0].z + b2*p[1].z + b3*p[2].z + b4*p[3].z;
+    return ret;
+}
+
+Vec3f bezier_curve(std::array<Vec3f, 4> p, float u){
+    Vec3f ret;
     float b1 = std::pow(1-u, 3);
     float b2 = 3*u*std::pow(1-u, 2);
     float b3 = 3*std::pow(u, 2)*(1-u);
@@ -77,8 +99,8 @@ Point bezier_curve(std::array<Point, 4> p, float u){
     return ret;
 }
 
-Point bezier_patch(float u, float v){
-    std::array<Point, 4> curves;
+Vec3f bezier_patch(float u, float v){
+    std::array<Vec3f, 4> curves;
     for(int i = 0; i < 4; i++){
         curves[i] = bezier_curve(controls[i], u);
     }
@@ -112,6 +134,27 @@ void draw_controls(){
     glPointSize(1);
 }
 
+void draw_bcontrols(){
+    glPointSize(20);
+    glBegin(GL_POINTS);
+    for (int i = 1; i < bcontrols.size()-1; ++i) {
+        glColor3f(bcontrols[i].r/255.0,bcontrols[i].g/255.0,bcontrols[i].b/255.0);
+        glVertex3f(bcontrols[i].x, bcontrols[i].y, bcontrols[i].z);
+    }
+    glEnd();
+    glPointSize(1);
+}
+
+void draw_bpoints(){
+    glBegin(GL_LINES);
+    glColor3f(1.0,0.5,0.5);
+    for (int i = 0; i < bpoints.size()-1; ++i) {
+        glVertex3f(bpoints[i].x, bpoints[i].y, bpoints[i].z);
+        glVertex3f(bpoints[i+1].x, bpoints[i+1].y, bpoints[i+1].z);
+    }
+    glEnd();
+}
+
 void make_triangles(){
     for(int i = 0; i < points.size()-1; i++){
         for(int j = 0; j < points[0].size()-1; j++){
@@ -123,7 +166,7 @@ void make_triangles(){
 }
 
 void draw_triangles(){
-    Point v = Point(45, 45, 45);
+    Vec3f v = Vec3f(camx, camy, 25);
 
     for(auto t: triangles){
         if(render_type != 0)
@@ -132,12 +175,12 @@ void draw_triangles(){
             glBegin(GL_LINE_LOOP);
             glColor3f(1,1,1);
         }
-        Point n = normal(t);
-        if(dot(v, n) > 0)
+        Vec3f n = normal(t);
+        if(dot(v, n) > 0 && render_type == 0)
             continue;
-        Point p1 = normal_avg(t.a);
-        Point p2 = normal_avg(t.b);
-        Point p3 = normal_avg(t.c);
+        Vec3f p1 = normal_avg(t.a);
+        Vec3f p2 = normal_avg(t.b);
+        Vec3f p3 = normal_avg(t.c);
         glNormal3f(p1.x, p1.y, p1.z);
         glVertex3f(t.a.x, t.a.y, t.a.z);
 
@@ -150,6 +193,28 @@ void draw_triangles(){
     }
 }
 
+void draw_flower(){
+    lighting();
+    glEnable(GL_TEXTURE_2D);
+    float di = 1.0/(float)points.size();
+    float dj = 1.0/(float)points[0].size();
+    for (int i = 0; i < points.size()-1; ++i) {
+        for(int j = 0; j < points[0].size()-1; ++j){
+            float fraci = (float)i/(float)points.size();
+            float fracj = (float)j/(float)points[0].size();
+            Vec3f norm = normal(Triangle(points[i][j+1], points[i+1][j], points[i][j]));
+            glBegin(GL_QUADS);
+            glNormal3f(norm.x, norm.y, norm.z);
+            glTexCoord2f(fraci, fracj); glVertex3f(points[i][j].x,   points[i][j].y, points[i][j].z);
+            glTexCoord2f(fraci, fracj+dj); glVertex3f(points[i][j+1].x,   points[i][j+1].y, points[i][j+1].z);
+            glTexCoord2f(fraci+di, fracj+dj); glVertex3f(points[i+1][j+1].x, points[i+1][j+1].y, points[i+1][j+1].z);
+            glTexCoord2f(fraci+di, fracj); glVertex3f(points[i+1][j].x, points[i+1][j].y, points[i+1][j].z);
+            glEnd();
+        }
+    }
+    glDisable(GL_TEXTURE_2D);
+}
+
 void calculate_bezier(){
     for (int i = 0; i < points.size(); ++i) {
         for (int j = 0; j < points[0].size(); ++j) {
@@ -160,52 +225,43 @@ void calculate_bezier(){
     }
 }
 
+void calculate_bspline(){
+    bpoints.clear();
+    for(int i=0; i<=6; i++){
+        std::vector<Vec3f> p = 
+            std::vector<Vec3f>(bcontrols.begin()+i, bcontrols.begin()+i+4);
+        for(float j = 0; j < 1; j+=.1){
+            bpoints.push_back(bspline_curve(p, j));
+        }
+    }
+}
+
+bool user_input(){
+    bool c = false;
+    if(keys['s']){curr->x+=.3;c=true;}
+    if(keys['w']){curr->x-=.3;c=true;}
+    if(!bpoint){
+        if(keys['a']){curr->z+=.3;c=true;}
+        if(keys['d']){curr->z-=.3;c=true;}
+    }
+    if(keys['r']){curr->y+=.3;c=true;}
+    if(keys['f']){curr->y-=.3;c=true;}
+    if(keys['k']){lightx++;c=true;}
+    if(keys['i']){lightx--;c=true;}
+    if(keys['j']){lightz++;c=true;}
+    if(keys['l']){lightz--;c=true;}
+    return c;
+}
+
 void display(){
+
     bool changed = false;
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
-    if(keys['s']){
-        curr->x+=.3;
-        changed = true;
-    }
-    if(keys['w']){
-        curr->x-=.3;
-        changed = true;
-    }
-    if(keys['a']){
-        curr->z+=.3;
-        changed = true;
-    }
-    if(keys['d']){
-        curr->z-=.3;
-        changed = true;
-    }
-    if(keys['r']){
-        curr->y+=.3;
-        changed = true;
-    }
-    if(keys['f']){
-        curr->y-=.3;
-        changed = true;
-    }
-    if(keys['k']){
-        lightx++;
-        changed = true;
-    }
-    if(keys['i']){
-        lightx--;
-        changed = true;
-    }
-    if(keys['j']){
-        lightz++;
-        changed = true;
-    }
-    if(keys['l']){
-        lightz--;
-        changed = true;
-    }
+    //checks what keys are pressed and calculates changes
+    changed = user_input();
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -213,13 +269,7 @@ void display(){
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    gluLookAt(25,25,25,0,0,0,0,1,0);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, ColorGreen);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, ColorGreen);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, ColorWhite);
-    glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
+    gluLookAt(camx,camy,25,0,0,0,0,1,0);
 
     if(render_type != 0){
         glPushMatrix();
@@ -229,16 +279,26 @@ void display(){
     }
 
     if(changed){
+        calculate_bspline();
         calculate_bezier();
         triangles.clear();
         make_triangles();
-        lighting();
+        if(render_type != 0)
+            lighting();
     }
-    draw_triangles();
 
-    if(render_type != 0)
-        glDisable(GL_LIGHTING);
+    if(render_type == 0 || render_type == 1 || render_type == 2)
+        draw_triangles();
+    else
+        draw_flower();
+
+    glDisable(GL_LIGHTING);
+    glColor3f(1,1,1);
     draw_axis();
+    if(render_type == 0){
+        draw_bcontrols();
+        draw_bpoints();
+    }
     draw_controls();
     if(render_type != 0)
         glEnable(GL_LIGHTING);
@@ -262,16 +322,46 @@ void timer(int){
     glutTimerFunc(1000/60, timer, 0);
 }
 
+void menu_adjust(int value){
+    if(value == 1){LightDiffuse[0]+=.1;LightDiffuse[1]+=.1;LightDiffuse[2]+=.1;}
+    if(value == 2){LightDiffuse[0]-=.1;LightDiffuse[1]-=.1;LightDiffuse[2]-=.1;}
+    if(value == 3){LightSpecular[0]+=.1;LightSpecular[1]+=.1;LightSpecular[2]+=.1;}
+    if(value == 4){LightSpecular[0]-=.1;LightSpecular[1]-=.1;LightSpecular[2]-=.1;}
+    if(value == 5){shininess[0]+=5;}
+    if(value == 6){shininess[0]-=5;}
+    lighting();
+}
 void menu(int value){
+    if(value == 1 || value == 2){
+        glMaterialfv(GL_FRONT, GL_AMBIENT, ColorGreen);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, ColorGreen);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, ColorWhite);
+        glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
+    }
+    if(value == 3){
+        glMaterialfv(GL_FRONT, GL_AMBIENT, LightAmbient);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, LightDiffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, LightSpecular);
+        glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
+    }
     render_type = value;
     lighting();
 }
 
 void make_menu(){
+    int sub_menu = glutCreateMenu(menu_adjust);
+    glutAddMenuEntry("Diffuse+", 1);
+    glutAddMenuEntry("Diffuse-", 2);
+    glutAddMenuEntry("Specular+", 3);
+    glutAddMenuEntry("Specular-", 4);
+    glutAddMenuEntry("Shininess+", 5);
+    glutAddMenuEntry("Shininess-", 6);
 	glutCreateMenu(menu);
 	glutAddMenuEntry("Wireframe", 0);
 	glutAddMenuEntry("Flat", 1);
 	glutAddMenuEntry("Smooth", 2);
+	glutAddMenuEntry("Flower", 3);
+    glutAddSubMenu("Adjust", sub_menu);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
@@ -288,9 +378,12 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutKeyboardUpFunc(key_up);
     init_control_points();
+    init_bcontrol_points();
     calculate_bezier();
+    calculate_bspline();
     make_triangles();
     make_menu();
+    id = load_texture();
     
     timer(0);
     glutMainLoop();
